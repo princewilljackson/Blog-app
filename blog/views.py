@@ -1,8 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.core.paginator import Paginator, EmptyPage
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.mail import send_mail
 from django.conf import settings
 from django.views.decorators.http import require_POST
+from django.db.models import Count
 
 from taggit.models import Tag
 from .models import Post, Comment
@@ -21,6 +22,9 @@ def post_list(request, tag_slug=None):
     page_number = request.GET.get('page', 1)
     try:
         posts = paginator.page(page_number)
+    except PageNotAnInteger:
+        # If page_number is not an integer deliver the first page
+        posts = paginator.page(1)
     except EmptyPage:
         # If page_number is out of range deliver last page of results.
         posts = paginator.page(paginator.num_pages)
@@ -40,8 +44,15 @@ def post_detail(request, year, month, day, post):
     comments = post.comments.filter(active=True)
     # Form for users to comment
     form = CommentForm()
+    # List of similar posts
+    """The values_list() QuerySet
+    returns tuples with the values for the given fields. You pass flat=True to it to get single values
+    such as [1, 2, 3, ...] instead of one-tuples such as [(1,), (2,), (3,) ...]."""
+    post_tags_ids = post.tags.values_list('id', flat=True)
+    similar_posts = Post.published.filter(tags__in=post_tags_ids).exclude(id=post.id) # get all posts that contain any of these tags, excluding the current post itself.
+    similar_posts = similar_posts.annotate(same_tags=Count('tags')).order_by('-same_tags','-publish')[:4]
     template_name = 'blog/post/blog-post.html'
-    context = {'post': post, 'comments':comments, 'form':form}
+    context = {'post': post, 'comments':comments, 'form':form, 'similar_posts':similar_posts}
 
     return render(request, template_name, context)
 
@@ -84,6 +95,6 @@ def post_comment(request, post_id):
         comment.post = post
         # Save the comment to the database
         comment.save()
-        return render(request, 'blog/post/comment.html', {'post': post,
+    return render(request, 'blog/post/comment.html', {'post': post,
                                                           'form': form,
                                                           'comment': comment})
