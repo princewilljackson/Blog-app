@@ -1,8 +1,11 @@
 {% extends "blog/base.html" %}
 {% load blog_tags %}
-{% block title %}Simple Blog{% endblock %}
+{% block title %}Princewill's Professional Blog{% endblock %}
 {% block content %}
-<h1>Welcome to Simple Blog</h1>
+<h1>Welcome to Princewill's Professional Blog</h1>
+
+<p><a href="{% url 'blog:post_search' %}">Search</a></p>
+
 {% if tag %}
     <h2>Posts tagged with "{{ tag.name }}"</h2>
 {% endif %}

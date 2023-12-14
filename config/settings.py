@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
+    'django.contrib.sites',
 
     # Third party apps
     'taggit',
@@ -47,6 +49,8 @@ INSTALLED_APPS = [
     # My apps
     'blog.apps.BlogConfig',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
