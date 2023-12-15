@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from django.db.models import Count
-from django.contrib.postgres.search import SearchVector
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 
 from taggit.models import Tag
 from .models import Post, Comment
@@ -110,7 +110,12 @@ def post_search(request):
         so that the resulting URL includes the query parameter and is easy to share."""
         if form.is_valid():
             query = form.cleaned_data['query']
-            results = Post.published.annotate(search=SearchVector('post_title', 'post_content'),).filter(search=query)
+            search_vector = SearchVector('post_title', weight='A') + SearchVector('post_content', weight='B')
+            search_query = SearchQuery(query)
+            results = Post.published.annotate(
+                search=search_vector,
+                rank=SearchRank(search_vector, search_query),
+                ).filter(rank__gte=0.3).order_by('-rank') # Filter the results to display only ones with rank higher than 0.3.
     template_name = 'blog/post/search.html'
     context = {'form': form,'query': query,'results': results}
     return render(request, template_name, context)
